@@ -1,0 +1,205 @@
+PROJECT MANAGEMENT SYSTEM-DOCUMENTATION
+
+
+1.	User Registration and Login
+
+
+2.	Project Management
+
+
+3.	Task Management
+
+
+4.	Task Status & Remarks
+
+
+5.	Reports
+
+
+Everything will be done through server-side routing via query parameters or action types — all handled within PHP files.
+________________________________________
+User Authentication
+register.php
+•	Form to collect email, password.
+
+
+•	Hash password using password_hash().
+
+
+•	Save into users table.
+
+
+login.php
+•	Verify with password_verify().
+
+
+•	On success, start a session and store the user ID in $_SESSION['user_id'].
+
+
+logout.php
+•	Just destroy the session.
+
+
+________________________________________
+Project Management
+projects.php
+•	List user projects
+
+
+•	Use $_SESSION['user_id'] to show only their projects.
+
+
+create_project.php
+•	Form for project name & description.
+
+
+•	Insert into projects table linked to user_id.
+
+
+edit_project.php?id=...
+•	Fetch project by id and populate form for editing.
+
+
+•	On submit, update the DB.
+
+
+delete_project.php?id=...
+•	Delete the project and related tasks.
+
+
+________________________________________
+Task Management
+create_task.php?project_id=...
+•	Form for task title, description, initial status.
+
+
+•	Insert into tasks table linked to project_id.
+
+
+edit_task.php?id=...
+•	Allow updating task title, description, or status.
+
+
+delete_task.php?id=...
+•	Delete the task and related remarks & status history.
+
+
+________________________________________
+Update Task Status + Remarks
+update_status.php?task_id=...
+•	Form to:
+
+
+o	Change task status (dropdown)
+
+
+o	Add a remark
+
+
+•	Insert into:
+
+
+o	task_status_history
+
+
+o	task_remarks
+
+
+________________________________________
+Project Report
+report.php?project_id=...
+•	Fetch all tasks under a project.
+
+
+•	For each task:
+
+
+o	List all status changes (from task_status_history)
+
+
+o	List all daily remarks (from task_remarks)
+
+
+________________________________________
+Folder Structure (Recommended)
+bash
+CopyEdit
+/project-root
+│
+├── db.php                # DB connection
+├── session.php           # Auth/session check
+├── register.php
+├── login.php
+├── logout.php
+│
+├── projects.php
+├── create_project.php
+├── edit_project.php
+├── delete_project.php
+│
+├── create_task.php
+├── edit_task.php
+├── delete_task.php
+├── update_status.php
+│
+├── report.php
+└── ...
+
+________________________________________
+DB Tables (Simplified)
+
+CREATE DATABASE IF NOT EXISTS project_manager;
+USE project_manager;
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    firstname VARCHAR(50) NOT NULL,
+    lastname VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE projects (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX(user_id)
+);
+
+CREATE TABLE tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    status ENUM('Pending', 'In Progress', 'Completed') DEFAULT 'Pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    INDEX(project_id),
+    INDEX(status)
+);
+
+CREATE TABLE task_remarks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    task_id INT NOT NULL,
+    remark TEXT NOT NULL,
+    remark_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    INDEX(task_id),
+    INDEX(remark_date)
+);
+
+CREATE TABLE task_status_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    task_id INT NOT NULL,
+    status ENUM('Pending', 'In Progress', 'Completed'),
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    INDEX(task_id),
+    INDEX(status),
+    INDEX(changed_at)
+);
